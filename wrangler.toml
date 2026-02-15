@@ -1,0 +1,51 @@
+"$schema" = "./node_modules/wrangler/config-schema.json"
+name = "arpamail-relay"
+main = "src/index.ts"
+compatibility_date = "2026-02-06"
+preview_urls = false
+
+[observability]
+enabled = true
+
+[observability.traces]
+enabled = true
+
+[vars]
+EMAIL_DOMAIN = "b.4.1.5.0.7.4.0.1.0.0.2.ip6.arpa"
+RELAY_URL = "https://arpamail-relay.lemonyte.com/"
+SITE_URL = "https://arpamail.lemonyte.com/"
+ALIAS_TTL_DAYS = 0.25
+UNVERIFIED_ALIAS_TTL_HOURS = 1
+MAX_FREE_ALIASES = 100
+WH_SIGNATURE_EXPIRY_SECONDS = 600
+
+[[routes]]
+pattern = "arpamail-relay.lemonyte.com"
+custom_domain = true
+
+[triggers]
+# Daily job to clean up expired records.
+crons = ["0 0 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "arpamail"
+database_id = "c3892d30-a813-44af-b7d0-4b97315fbc2b"
+
+[[ratelimits]]
+# Rate limiter for incoming emails.
+name = "RELAY_RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 2, period = 60 }
+
+[[ratelimits]]
+# Rate limiter for automated outgoing notification emails.
+name = "NOTIFICATION_RATE_LIMITER"
+namespace_id = "1002"
+simple = { limit = 2, period = 60 }
+
+[[ratelimits]]
+# Rate limiter for other API requests like deleting an email.
+name = "API_RATE_LIMITER"
+namespace_id = "1003"
+simple = { limit = 2, period = 60 }
