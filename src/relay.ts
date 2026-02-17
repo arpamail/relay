@@ -99,17 +99,19 @@ const resolve_addresses = async ({
         // If sending to a reverse alias, and the sender doesn't exist in our database,
         // either someone leaked the reverse alias or the sender deleted their alias.
         // In either case return null for both sender and recipient to reject the email.
-        sender = await alias_manager.get_by_real_address(real_from_address);
         const reverse_info = await alias_manager.resolve_reverse_alias({ reverse_alias: alias_to_address });
-        // Ensure that the sender owns the reverse alias.
-        // If this check fails, return null for the recipient.
-        if (sender && reverse_info && sender.alias_address === reverse_info.owner_alias_address) {
-            recipient = {
-                alias_address: reverse_info.reverse_alias,
-                real_address: reverse_info.recipient_real_address,
-                verified: true,
-                allow_reply: true,
-            };
+        if (reverse_info) {
+            sender = await alias_manager.get_by_alias_address(reverse_info.owner_alias_address);
+            // Ensure that the sender owns the reverse alias.
+            // If this check fails, return null for the recipient.
+            if (sender && sender.real_address === real_from_address) {
+                recipient = {
+                    alias_address: reverse_info.reverse_alias,
+                    real_address: reverse_info.recipient_real_address,
+                    verified: true,
+                    allow_reply: true,
+                };
+            }
         }
     } else {
         // If the email is sent to a normal alias, we need to also create a reverse alias
