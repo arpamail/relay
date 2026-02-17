@@ -8,11 +8,9 @@ interface AliasApiEndpointHandler {
     (real_address: string, token: string): Promise<D1Result<Record<string, unknown>>>;
 }
 
-// NOTE: RPC methods can't be arrow functions.
-// Arrow functions in this class are intentionally not exposed as RPC methods.
+// NOTE: RPC methods cannot be arrow functions.
 export class AliasManager extends WorkerEntrypoint {
     async fetch(request: Request) {
-        // RPC methods can't be arrow functions.
         let { pathname } = new URL(request.url);
         if (!pathname.endsWith("/")) {
             pathname += "/";
@@ -30,7 +28,7 @@ export class AliasManager extends WorkerEntrypoint {
      * Parse the address and token from the request.
      * @throws Response if the request should be aborted with the given response.
      */
-    #parse_payload = async (request: Request): Promise<{ address: string; token: string }> => {
+    async #parse_payload(request: Request): Promise<{ address: string; token: string }> {
         let address: string | undefined;
         let token: string | undefined;
         if (request.method === "POST" && request.headers.get("Content-Type") === "application/json") {
@@ -58,13 +56,13 @@ export class AliasManager extends WorkerEntrypoint {
         }
 
         return { address, token };
-    };
+    }
 
     /**
      * Handle a fetch request using the given function.
      * Accepts `verify_address`, `delete_address`, and others with the same signature.
      */
-    #handle_fetch = async (request: Request, func: AliasApiEndpointHandler): Promise<Response> => {
+    async #handle_fetch(request: Request, func: AliasApiEndpointHandler): Promise<Response> {
         try {
             const { address, token } = await this.#parse_payload(request);
             const promise = func(address, token);
@@ -84,24 +82,24 @@ export class AliasManager extends WorkerEntrypoint {
             }
             return new Response("Internal Server Error", { status: 500 });
         }
-    };
+    }
 
     /**
      * Generate a random token as a SHA-256 hex string.
      */
-    #generate_token = async (): Promise<string> => {
+    async #generate_token(): Promise<string> {
         const bytes = new TextEncoder().encode(crypto.randomUUID());
         const hash_buffer = await crypto.subtle.digest("SHA-256", bytes);
         return bytes_to_hex(new Uint8Array(hash_buffer));
-    };
+    }
 
-    #generate_alias = (): string => {
+    #generate_alias(): string {
         return `${crypto.randomUUID()}@${this.env.EMAIL_DOMAIN}`;
-    };
+    }
 
-    #generate_reverse_alias = (): string => {
+    #generate_reverse_alias(): string {
         return `r-${this.#generate_alias()}`;
-    };
+    }
 
     alias_ttl(verified: boolean = false): { hours: number; seconds: number } {
         const ttl_hours = verified ? this.env.ALIAS_TTL_DAYS * 24 : this.env.UNVERIFIED_ALIAS_TTL_HOURS;
@@ -202,7 +200,7 @@ export class AliasManager extends WorkerEntrypoint {
      * @throws Error if unable to create a unique reverse alias address after `max_attempts`.
      * @throws Error if unable to retrieve the reverse alias address from the database.
      */
-    create_reverse_alias = async ({
+    async create_reverse_alias({
         owner_alias_address,
         recipient_real_address,
         max_attempts = 10,
@@ -210,7 +208,7 @@ export class AliasManager extends WorkerEntrypoint {
         owner_alias_address: string;
         recipient_real_address: string;
         max_attempts?: number;
-    }): Promise<ReverseAliasRow> => {
+    }): Promise<ReverseAliasRow> {
         if (!owner_alias_address) {
             throw new BadAddressError("Owner alias address cannot be empty.");
         }
@@ -261,7 +259,7 @@ export class AliasManager extends WorkerEntrypoint {
             throw new Error("Failed to retrieve newly created reverse alias address record.");
         }
         return record;
-    };
+    }
 
     /**
      * Retrieve an alias and real address pair using the real address.
@@ -275,11 +273,11 @@ export class AliasManager extends WorkerEntrypoint {
     /**
      * Retrieve an alias and real address pair using the alias address.
      */
-    get_by_alias_address = (alias_address: string): Promise<AliasRow | null> => {
+    get_by_alias_address(alias_address: string): Promise<AliasRow | null> {
         return this.env.DB.prepare("SELECT * FROM aliases WHERE alias_address = ?1 LIMIT 1")
             .bind(alias_address)
             .first<AliasRow>();
-    };
+    }
 
     /**
      * Get the number of aliases associated with a real address.
@@ -295,33 +293,33 @@ export class AliasManager extends WorkerEntrypoint {
      * Retrieve a reverse alias for a particular owner alias address
      * and recipient real address combination, if it exists.
      */
-    get_reverse_alias = ({
+    get_reverse_alias({
         owner_alias_address,
         recipient_real_address,
     }: {
         owner_alias_address: string;
         recipient_real_address: string;
-    }): Promise<ReverseAliasRow | null> => {
+    }): Promise<ReverseAliasRow | null> {
         return this.env.DB.prepare(
             "SELECT * FROM reverse_aliases WHERE owner_alias_address = ?1 AND recipient_real_address = ?2 LIMIT 1",
         )
             .bind(owner_alias_address, recipient_real_address)
             .first<ReverseAliasRow>();
-    };
+    }
 
     /**
      * Resolve addresses from a reverse alias, if it exists.
      */
-    resolve_reverse_alias = ({ reverse_alias }: { reverse_alias: string }): Promise<ReverseAliasRow | null> => {
+    resolve_reverse_alias({ reverse_alias }: { reverse_alias: string }): Promise<ReverseAliasRow | null> {
         return this.env.DB.prepare("SELECT * FROM reverse_aliases WHERE reverse_alias = ?1 LIMIT 1")
             .bind(reverse_alias)
             .first<ReverseAliasRow>();
-    };
+    }
 
     /**
      * Update the expiry time of an alias entry. If `ttl` is not provided, use the default **verified** TTL.
      */
-    update_alias_expiry = (alias_address: string, ttl: number = this.alias_ttl(true).seconds) => {
+    update_alias_expiry(alias_address: string, ttl: number = this.alias_ttl(true).seconds) {
         // Do nothing for reverse aliases since their expiration is tied to the owner alias.
         if (is_email_reverse_alias(alias_address, this.env.EMAIL_DOMAIN)) {
             return Promise.resolve();
@@ -332,7 +330,7 @@ export class AliasManager extends WorkerEntrypoint {
         )
             .bind(new_expires, alias_address)
             .run();
-    };
+    }
 
     /**
      * Mark an address as verified.
@@ -346,12 +344,12 @@ export class AliasManager extends WorkerEntrypoint {
     /**
      * Add a real address to the blacklist, preventing it from creating aliases and sending emails.
      */
-    blacklist_address = (real_address: string, reason?: string) => {
+    blacklist_address(real_address: string, reason?: string) {
         const timestamp = Math.floor(Date.now() / 1000);
         return this.env.DB.prepare("INSERT INTO blacklist (real_address, timestamp, reason) VALUES (?1, ?2, ?3)")
             .bind(real_address, timestamp, reason || null)
             .run();
-    };
+    }
 
     /**
      * Check if a real address is blacklisted.
@@ -386,7 +384,7 @@ export class AliasManager extends WorkerEntrypoint {
     /**
      * Clean up expired alias address records from the database.
      */
-    delete_expired_aliases = async () => {
+    async delete_expired_aliases() {
         try {
             return this.env.DB.prepare("DELETE FROM aliases WHERE expires < ?1")
                 .bind(Math.floor(Date.now() / 1000))
@@ -395,14 +393,14 @@ export class AliasManager extends WorkerEntrypoint {
             const message = error instanceof Error ? error.message : `${error}`;
             console.warn({ message: "Failed to delete expired records", error: message });
         }
-    };
+    }
 
-    #build_link = (path: string, address: string, token: string): URL => {
+    #build_link(path: string, address: string, token: string): URL {
         const url = new URL(path, this.env.RELAY_URL);
         url.searchParams.set("address", address);
         url.searchParams.set("token", token);
         return url;
-    };
+    }
 
     /**
      * Return a link that can be used to verify an address row.

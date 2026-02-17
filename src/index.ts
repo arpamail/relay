@@ -5,7 +5,7 @@ import { handle_incoming_email } from "./relay";
 export { AliasManager };
 
 export default {
-    fetch: async (request, env, ctx) => {
+    async fetch(request, env, ctx) {
         try {
             let { pathname } = new URL(request.url);
             if (!pathname.endsWith("/")) {
@@ -29,7 +29,7 @@ export default {
         }
     },
 
-    scheduled: async (controller, env, ctx) => {
+    async scheduled(controller, env, ctx) {
         ctx.waitUntil(new AliasManager(ctx, env).delete_expired_aliases());
     },
 } satisfies ExportedHandler<Env>;
