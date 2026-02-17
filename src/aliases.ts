@@ -262,11 +262,12 @@ export class AliasManager extends WorkerEntrypoint {
     }
 
     /**
-     * Retrieve an alias and real address pair using the real address.
+     * Retrieve an alias and real address pair using the real address and token.
+     * The token is required to differentiate between multiple aliases for the same real address.
      */
-    get_by_real_address(real_address: string): Promise<AliasRow | null> {
-        return this.env.DB.prepare("SELECT * FROM aliases WHERE real_address = ?1 LIMIT 1")
-            .bind(real_address)
+    get_by_real_address(real_address: string, token: string): Promise<AliasRow | null> {
+        return this.env.DB.prepare("SELECT * FROM aliases WHERE real_address = ?1 AND token = ?2 LIMIT 1")
+            .bind(real_address, token)
             .first<AliasRow>();
     }
 
@@ -335,7 +336,12 @@ export class AliasManager extends WorkerEntrypoint {
     /**
      * Mark an address as verified.
      */
-    verify_address(real_address: string, token: string) {
+    async verify_address(real_address: string, token: string) {
+        const alias_record = await this.get_by_real_address(real_address, token);
+        if (!alias_record) {
+            throw new RecordNotFoundError("No matching record found to verify.");
+        }
+        await this.update_alias_expiry(alias_record.alias_address);
         return this.env.DB.prepare("UPDATE aliases SET verified = TRUE WHERE real_address = ?1 AND token = ?2 LIMIT 1")
             .bind(real_address, token)
             .run();
