@@ -372,12 +372,8 @@ export class AliasManager extends WorkerEntrypoint {
      * @throws RecordNotFoundError if no matching record is found.
      */
     async delete_address(real_address: string, token: string) {
-        const results = await this.env.DB.prepare(
-            "SELECT * FROM aliases WHERE real_address = ?1 AND token = ?2 LIMIT 1",
-        )
-            .bind(real_address, token)
-            .first<AliasRow>();
-        if (!results) {
+        const existing = await this.get_by_real_address(real_address, token);
+        if (!existing) {
             throw new RecordNotFoundError("No matching record found to delete.");
         }
         const promise = this.env.DB.prepare("DELETE FROM aliases WHERE real_address = ?1 AND token = ?2 LIMIT 1")
