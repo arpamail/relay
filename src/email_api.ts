@@ -41,10 +41,8 @@ export const send_email = (
             from: data.from_name ? `${data.from_name} ${add_angle_brackets(data.from)}` : data.from,
             subject: data.subject,
             reply_to: data.reply_to || data.from,
-            body: {
-                text: data.body,
-                // TODO: html?
-            },
+            text: data.body,
+            // TODO: html?
             headers: data.headers || {},
         }),
     });
