@@ -19,6 +19,9 @@ UNVERIFIED_ALIAS_TTL_HOURS = 1
 MAX_FREE_ALIASES = 100
 WH_SIGNATURE_EXPIRY_SECONDS = 600
 
+[secrets]
+required = ["CONTIGUITY_TOKEN", "CONTIGUITY_WH_SECRET"]
+
 [[routes]]
 pattern = "arpamail-relay.lemonyte.com"
 custom_domain = true
