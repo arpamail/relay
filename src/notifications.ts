@@ -1,4 +1,5 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
+
 import { send_email, send_reply } from "./email_api";
 import { add_angle_brackets, is_email_reverse_alias } from "./helpers";
 import type { EmailData, AliasRow } from "./types";

@@ -1,7 +1,8 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
-import { NotificationManager } from "./notifications";
+
 import { BadAddressError, LimitExceededError, RecordNotFoundError } from "./errors";
 import { bytes_to_hex, strip_subaddress, is_email_alias, is_email_reverse_alias } from "./helpers";
+import { NotificationManager } from "./notifications";
 import type { DeleteAliasRequest, AliasRow, ReverseAliasRow } from "./types";
 
 interface AliasApiEndpointHandler {

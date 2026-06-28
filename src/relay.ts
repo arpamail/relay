@@ -1,7 +1,7 @@
 import { AliasManager } from "./aliases";
-import { NotificationManager } from "./notifications";
 import { send_email } from "./email_api";
 import { hex_to_bytes, is_email_alias, is_email_reverse_alias } from "./helpers";
+import { NotificationManager } from "./notifications";
 import type { Event, EmailEvent, EmailData, AliasRow, MessageIdsRow } from "./types";
 
 /**
@@ -12,7 +12,7 @@ const MAX_BODY_SIZE = 10 * 1024 * 1024;
 /**
  * Create a new alias message ID for the given email, and insert it into the database.
  */
-const new_message_id = async (env: Env, data: EmailData, sender_alias_address: string): Promise<string | null> => {
+const _new_message_id = async (env: Env, data: EmailData, sender_alias_address: string): Promise<string | null> => {
     try {
         if (!data.message_id) {
             throw new Error("Incoming email missing Message-ID header.");
@@ -37,7 +37,7 @@ const new_message_id = async (env: Env, data: EmailData, sender_alias_address: s
 /**
  * Translate the `References` and `In-Reply-To` headers from aliased IDs to their real IDs.
  */
-const unalias_threading_headers = async (env: Env, data: EmailData): Promise<Record<string, string>> => {
+const _unalias_threading_headers = async (env: Env, data: EmailData): Promise<Record<string, string>> => {
     const aliased_in_reply_to = data.in_reply_to;
     const aliased_references = data.references;
     const translated_headers: Record<string, string> = {};
@@ -321,8 +321,7 @@ export const relay_email = async (data: EmailData, env: Env, ctx: ExecutionConte
     // `sender.alias_address` is only available if `recipient.allow_reply` is true.
     const email_promise = send_email(env, {
         to: recipient.real_address,
-        from:
-            recipient.allow_reply && sender.alias_address ? sender.alias_address : notification_manager.relay_address,
+        from: recipient.allow_reply && sender.alias_address ? sender.alias_address : notification_manager.relay_address,
         from_name: "Anonymous",
         reply_to:
             recipient.allow_reply && sender.alias_address
