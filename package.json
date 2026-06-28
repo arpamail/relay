@@ -1,14 +1,21 @@
 {
     "name": "arpamail-relay",
-    "private": true,
     "version": "0.0.1",
+    "private": true,
     "scripts": {
         "deploy": "wrangler deploy --strict",
         "dev": "wrangler dev",
         "start": "wrangler dev",
-        "cf-typegen": "wrangler types"
+        "cf-typegen": "wrangler types",
+        "lint": "oxlint",
+        "lint:fix": "oxlint --fix",
+        "fmt": "oxfmt",
+        "fmt:check": "oxfmt --check"
     },
     "devDependencies": {
+        "oxfmt": "^0.56.0",
+        "oxlint": "^1.71.0",
+        "oxlint-tsgolint": "^0.23.0",
         "typescript": "^6.0.3",
         "wrangler": "^4.96.0"
     }
