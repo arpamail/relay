@@ -13,10 +13,10 @@
         "fmt:check": "oxfmt --check"
     },
     "devDependencies": {
-        "oxfmt": "^0.61.0",
-        "oxlint": "^1.76.0",
+        "oxfmt": "^0.65.0",
+        "oxlint": "^1.80.0",
         "oxlint-tsgolint": "^7.0.2001",
         "typescript": "^7.0.2",
-        "wrangler": "^4.115.0"
+        "wrangler": "^4.127.1"
     }
 }
