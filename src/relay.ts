@@ -1,6 +1,6 @@
 import { AliasManager } from "./aliases";
 import { send_email } from "./email_api";
-import { hex_to_bytes, is_email_alias, is_email_reverse_alias } from "./helpers";
+import { hex_to_bytes, is_email_alias, is_email_reverse_alias, strip_subaddress } from "./helpers";
 import { NotificationManager } from "./notifications";
 import type { Event, EmailEvent, EmailData, AliasRow, MessageIdsRow } from "./types";
 
@@ -219,7 +219,13 @@ export const handle_incoming_email = async (request: Request, env: Env, ctx: Exe
  */
 export const relay_email = async (data: EmailData, env: Env, ctx: ExecutionContext): Promise<Response> => {
     const alias_to_address = data.to.address.toLowerCase().trim();
-    const real_from_address = data.from.address.toLowerCase().trim();
+    let real_from_address: string;
+    try {
+        real_from_address = strip_subaddress(data.from.address.toLowerCase().trim());
+    } catch (error) {
+        console.warn({ message: "Invalid sender address", address: data.from.address, error: `${error}` });
+        return new Response("Bad Request", { status: 400 });
+    }
     const notification_manager = new NotificationManager(ctx, env);
 
     // Rate limit incoming emails from the same sender address.
