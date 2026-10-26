@@ -391,7 +391,7 @@ export class AliasManager extends WorkerEntrypoint {
      */
     async delete_expired_aliases() {
         try {
-            return this.env.DB.prepare("DELETE FROM aliases WHERE expires < ?1")
+            return await this.env.DB.prepare("DELETE FROM aliases WHERE expires < ?1")
                 .bind(Math.floor(Date.now() / 1000))
                 .run();
         } catch (error) {
