@@ -192,7 +192,7 @@ export const handle_incoming_email = async (request: Request, env: Env, ctx: Exe
     }
     // Request body has to be read here since it can't be used after we return a Response.
     const body = await request.text();
-    if (!verify_webhook_signature(body, request, env)) {
+    if (!(await verify_webhook_signature(body, request, env))) {
         console.warn({ message: "Received request with invalid signature", request });
         return new Response("Unauthorized", { status: 401 });
     }
