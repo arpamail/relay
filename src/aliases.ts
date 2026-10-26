@@ -16,13 +16,37 @@ export class AliasManager extends WorkerEntrypoint {
         if (!pathname.endsWith("/")) {
             pathname += "/";
         }
-        if (pathname === "/alias/verify/") {
-            return this.#handle_fetch(request, this.verify_address.bind(this));
-        } else if (pathname === "/alias/delete/") {
-            return this.#handle_fetch(request, this.delete_address.bind(this));
+        const action = pathname === "/alias/verify/" ? "verify" : pathname === "/alias/delete/" ? "delete" : null;
+        if (!action) {
+            console.log({ message: "Not found", pathname });
+            return new Response("Not Found", { status: 404 });
         }
-        console.log({ message: "Not found", pathname });
-        return new Response("Not Found", { status: 404 });
+        if (request.method === "GET") {
+            return this.#confirmation_page(action);
+        }
+        if (request.method === "POST") {
+            return this.#handle_fetch(
+                request,
+                action === "verify" ? this.verify_address.bind(this) : this.delete_address.bind(this),
+            );
+        }
+        return new Response("Method Not Allowed", { status: 405, headers: { Allow: "GET, POST" } });
+    }
+
+    /**
+     * Return a page with a button that POSTs back to the same URL, including the query string.
+     */
+    #confirmation_page(action: "verify" | "delete"): Response {
+        const html = `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ArpaMail</title></head>
+<body>
+<form method="post"><button type="submit">Click to ${action} your email alias</button></form>
+</body>
+</html>`;
+        return new Response(html, {
+            headers: { "Content-Type": "text/html; charset=utf-8", "Referrer-Policy": "no-referrer" },
+        });
     }
 
     /**
