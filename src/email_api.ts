@@ -75,7 +75,7 @@ export const send_reply = (
     }
 
     return send_email(env, {
-        to: parent.reply_to || parent.from.address,
+        to: parent.from.address,
         ...data,
         headers: {
             ...reference_headers,
