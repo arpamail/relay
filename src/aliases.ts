@@ -273,11 +273,13 @@ export class AliasManager extends WorkerEntrypoint {
     }
 
     /**
-     * Retrieve an alias and real address pair using the alias address.
+     * Retrieve an unexpired alias and real address pair using the alias address.
      */
     get_by_alias_address(alias_address: string): Promise<AliasRow | null> {
-        return this.env.DB.prepare("SELECT * FROM aliases WHERE alias_address = ?1 LIMIT 1")
-            .bind(alias_address)
+        return this.env.DB.prepare(
+            "SELECT * FROM aliases WHERE alias_address = ?1 AND (expires IS NULL OR expires >= ?2) LIMIT 1",
+        )
+            .bind(alias_address, Math.floor(Date.now() / 1000))
             .first<AliasRow>();
     }
 
@@ -339,7 +341,7 @@ export class AliasManager extends WorkerEntrypoint {
      */
     async verify_address(real_address: string, token: string) {
         const alias_record = await this.get_by_real_address(real_address, token);
-        if (!alias_record) {
+        if (!alias_record || (alias_record.expires !== null && alias_record.expires < Date.now() / 1000)) {
             throw new RecordNotFoundError("No matching record found to verify.");
         }
         await this.update_alias_expiry(alias_record.alias_address);
