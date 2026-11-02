@@ -52,7 +52,10 @@ export interface EmailData {
     message_id: string | null;
     in_reply_to: string | null;
     references: string[];
-    headers: Record<string, string>;
+    /**
+     * Lowercase header names. Values are a string, an array for repeated headers, or parsed address objects.
+     */
+    headers: Record<string, unknown>;
     attachments: Attachment[];
 }
 

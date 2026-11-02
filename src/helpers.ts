@@ -68,3 +68,30 @@ export const is_email_alias = (address: string, domain: string): boolean => {
 export const is_email_reverse_alias = (address: string, domain: string): boolean => {
     return is_email_alias(address, domain) && strip_angle_brackets(address).toLowerCase().startsWith("r-");
 };
+
+/**
+ * Check that the receiving server `authserv_id` reported a DMARC pass for the domain of `from_address`.
+ * Only the first `Authentication-Results` header is trusted, since the receiving server prepends its own
+ * and any later ones were written by the sender.
+ * Within it, only the last `dmarc=` result is trusted, since the receiving server writes it last
+ * and earlier fields (like `envelope-from`) contain sender-controlled text.
+ */
+export const is_sender_authenticated = (
+    headers: Record<string, unknown>,
+    from_address: string,
+    authserv_id: string,
+): boolean => {
+    const raw = headers["authentication-results"];
+    const results = Array.isArray(raw) ? raw[0] : raw;
+    if (typeof results !== "string") {
+        return false;
+    }
+    const [server, ...methods] = results
+        .toLowerCase()
+        .split(";")
+        .map((part) => part.trim());
+    const dmarc = methods.filter((method) => method.startsWith("dmarc=")).pop();
+    const match = dmarc?.match(/^dmarc=pass\b.*\bheader\.from=<?(?:[^\s@>]*@)?([^\s>]+)/);
+    const from_domain = strip_angle_brackets(from_address).toLowerCase().split("@").pop();
+    return server === authserv_id && !!match && match[1] === from_domain;
+};

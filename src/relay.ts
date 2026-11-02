@@ -1,6 +1,12 @@
 import { AliasManager } from "./aliases";
 import { send_email } from "./email_api";
-import { hex_to_bytes, is_email_alias, is_email_reverse_alias, strip_subaddress } from "./helpers";
+import {
+    hex_to_bytes,
+    is_email_alias,
+    is_email_reverse_alias,
+    is_sender_authenticated,
+    strip_subaddress,
+} from "./helpers";
 import { NotificationManager } from "./notifications";
 import type { Event, EmailEvent, EmailData, AliasRow, MessageIdsRow } from "./types";
 
@@ -8,6 +14,11 @@ import type { Event, EmailEvent, EmailData, AliasRow, MessageIdsRow } from "./ty
  * 10 MB maximum email body size.
  */
 const MAX_BODY_SIZE = 10 * 1024 * 1024;
+
+/**
+ * The server that receives mail for Contiguity (Amazon SES) and writes the trusted `Authentication-Results` header.
+ */
+const AUTHSERV_ID = "amazonses.com";
 
 /**
  * Create a new alias message ID for the given email, and insert it into the database.
@@ -225,6 +236,12 @@ export const relay_email = async (data: EmailData, env: Env, ctx: ExecutionConte
     } catch (error) {
         console.warn({ message: "Invalid sender address", address: data.from.address, error: `${error}` });
         return new Response("Bad Request", { status: 400 });
+    }
+
+    // Drop mail with a spoofed `From`.
+    if (!is_sender_authenticated(data.headers ?? {}, real_from_address, AUTHSERV_ID)) {
+        console.warn({ message: "Dropping email that failed sender authentication", sender: real_from_address });
+        return new Response("Forbidden", { status: 403 });
     }
     const notification_manager = new NotificationManager(ctx, env);
 
